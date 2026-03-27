@@ -1,36 +1,24 @@
-import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-import { HomeScreen } from '@features/home/screens/HomeScreen';
-import type { RootStackParamList } from '@navigation/types';
-import { colors } from '@theme/colors';
+// Correct paths based on your VS Code structure
+import SignUpPage from "../features/home/screens/SignUpPage";
 
-const Stack = createNativeStackNavigator<RootStackParamList>();
-
-const navigationTheme = {
-  ...DefaultTheme,
-  colors: {
-    ...DefaultTheme.colors,
-    background: colors.background,
-    card: colors.surface,
-    text: colors.text,
-    primary: colors.primary,
-    border: colors.border,
-  },
-};
+const Stack = createNativeStackNavigator();
 
 export function RootNavigator() {
   return (
-    <NavigationContainer theme={navigationTheme}>
-      <Stack.Navigator
-        initialRouteName="Home"
-        screenOptions={{
-          headerStyle: { backgroundColor: colors.surface },
-          headerTitleStyle: { color: colors.text, fontWeight: '600' },
-          contentStyle: { backgroundColor: colors.background },
-        }}
-      >
-        <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Expo TS Boilerplate' }} />
+    <NavigationContainer>
+      <Stack.Navigator initialRouteName="SignUp">
+        
+        <Stack.Screen 
+          name="SignUp" 
+          component={SignUpPage} 
+          options={{ title: 'Sign Up' }} 
+        />
+
+        
       </Stack.Navigator>
     </NavigationContainer>
   );
