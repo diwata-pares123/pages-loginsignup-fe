@@ -1,1 +1,1 @@
-export { default } from './src/app/App';
+import 'expo-router/entry';
