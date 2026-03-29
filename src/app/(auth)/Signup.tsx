@@ -14,7 +14,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, User, Mail, Lock, Calendar, MapPin, Home, Eye, EyeOff } from 'lucide-react-native';
 
 type TabRole = 'sender' | 'driver' | 'operator';
-const roleOptions: TabRole[] = ['sender', 'driver', 'operator'];
+const roleOptions: Set<TabRole> = new Set(['sender', 'driver', 'operator']);
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -36,7 +36,7 @@ export default function SignUpPage() {
 
   useEffect(() => {
     const role = Array.isArray(params.role) ? params.role[0] : params.role;
-    if (role && roleOptions.includes(role as TabRole)) {
+    if (role && roleOptions.has(role as TabRole)) {
       setActiveTab(role as TabRole);
     }
   }, [params.role]);
@@ -91,14 +91,220 @@ export default function SignUpPage() {
     },
   ];
 
-  const stepTitle =
-    step === 1
-      ? 'Join the PakiSHIP community.'
-      : step === 2
-      ? 'Tell us about yourself'
-      : 'Address & Security';
-  const stepLabel = step === 1 ? 'CREATE ACCOUNT' : step === 2 ? 'STEP 1' : 'STEP 2';
+  const getStepTitle = (): string => {
+    switch (step) {
+      case 1:
+        return 'Join the PakiSHIP community.';
+      case 2:
+        return 'Tell us about yourself';
+      case 3:
+        return 'Address & Security';
+      default:
+        return '';
+    }
+  };
+
+  const getStepLabel = (): string => {
+    switch (step) {
+      case 1:
+        return 'CREATE ACCOUNT';
+      case 2:
+        return 'STEP 1';
+      case 3:
+        return 'STEP 2';
+      default:
+        return '';
+    }
+  };
+
+  const stepTitle = getStepTitle();
+  const stepLabel = getStepLabel();
   const buttonLabel = step === 3 ? 'SUBMIT APPLICATION' : 'CONTINUE';
+
+  const renderRoleSelection = () => (
+    <>
+      {cardData.map((card) => (
+        <TouchableOpacity
+          key={card.role}
+          style={[styles.selectionCard, activeTab === card.role && styles.selectionCardActive]}
+          onPress={() => setActiveTab(card.role)}
+          activeOpacity={0.85}
+        >
+          <View style={styles.selectionIcon}>{card.icon}</View>
+          <View style={styles.selectionText}>
+            <Text style={styles.selectionTitle}>{card.title}</Text>
+            <Text style={styles.selectionSubtitle}>{card.subtitle}</Text>
+          </View>
+        </TouchableOpacity>
+      ))}
+    </>
+  );
+
+  const renderPersonalInfo = () => (
+    <>
+      <View style={styles.sectionLabelContainer}>
+        <Text style={styles.sectionLabel}>FULL NAME</Text>
+      </View>
+      <View style={styles.inputContainer}>
+        <View style={styles.inputIcon}>
+          <User size={20} color="#13918F" />
+        </View>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Juan Dela Cruz"
+          placeholderTextColor="#9CA3AF"
+          value={fullName}
+          onChangeText={setFullName}
+        />
+      </View>
+
+      <View style={styles.sectionLabelContainer}>
+        <Text style={styles.sectionLabel}>DATE OF BIRTH</Text>
+      </View>
+      <View style={styles.inputContainer}>
+        <View style={styles.inputIcon}>
+          <Calendar size={20} color="#13918F" />
+        </View>
+        <TextInput
+          style={styles.textInput}
+          placeholder="09/08/2004"
+          placeholderTextColor="#9CA3AF"
+          keyboardType="number-pad"
+          value={dob}
+          onChangeText={setDob}
+        />
+      </View>
+
+      <View style={styles.sectionLabelContainer}>
+        <Text style={styles.sectionLabel}>MOBILE NUMBER</Text>
+      </View>
+      <View style={styles.inputContainer}>
+        <View style={styles.prefixBox}>
+          <Text style={styles.prefixText}>+63</Text>
+        </View>
+        <TextInput
+          style={styles.textInput}
+          placeholder="912 345 6789"
+          placeholderTextColor="#9CA3AF"
+          keyboardType="phone-pad"
+          value={mobile}
+          onChangeText={setMobile}
+        />
+      </View>
+
+      <View style={styles.sectionLabelContainer}>
+        <Text style={styles.sectionLabel}>EMAIL ADDRESS</Text>
+      </View>
+      <View style={styles.inputContainer}>
+        <View style={styles.inputIcon}>
+          <Mail size={20} color="#13918F" />
+        </View>
+        <TextInput
+          style={styles.textInput}
+          placeholder="juandelacruz@email.com"
+          placeholderTextColor="#9CA3AF"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          value={email}
+          onChangeText={setEmail}
+        />
+      </View>
+    </>
+  );
+
+  const renderAddressAndSecurity = () => (
+    <>
+      <View style={styles.sectionLabelContainer}>
+        <Text style={styles.sectionLabel}>STREET ADDRESS</Text>
+      </View>
+      <View style={styles.inputContainer}>
+        <View style={styles.inputIcon}>
+          <Home size={20} color="#13918F" />
+        </View>
+        <TextInput
+          style={styles.textInput}
+          placeholder="123 Mabini St. Brgy. 4"
+          placeholderTextColor="#9CA3AF"
+          value={address}
+          onChangeText={setAddress}
+        />
+      </View>
+
+      <View style={styles.twoColumnRow}>
+        <View style={styles.halfInputWrapper}>
+          <Text style={styles.sectionLabel}>CITY</Text>
+          <View style={styles.inputContainer}>
+            <View style={styles.inputIcon}>
+              <MapPin size={20} color="#13918F" />
+            </View>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Quezon City"
+              placeholderTextColor="#9CA3AF"
+              value={city}
+              onChangeText={setCity}
+            />
+          </View>
+        </View>
+
+        <View style={styles.halfInputWrapper}>
+          <Text style={styles.sectionLabel}>PROVINCE</Text>
+          <View style={styles.inputContainer}>
+            <View style={styles.inputIcon}>
+              <MapPin size={20} color="#13918F" />
+            </View>
+            <TextInput
+              style={styles.textInput}
+              placeholder="Metro Manila"
+              placeholderTextColor="#9CA3AF"
+              value={province}
+              onChangeText={setProvince}
+            />
+          </View>
+        </View>
+      </View>
+
+      <View style={styles.sectionLabelContainer}>
+        <Text style={styles.sectionLabel}>SET PASSWORD</Text>
+      </View>
+      <View style={styles.inputContainer}>
+        <View style={styles.inputIcon}>
+          <Lock size={20} color="#13918F" />
+        </View>
+        <TextInput
+          style={styles.textInput}
+          placeholder="8+ chars, number, symbol"
+          placeholderTextColor="#9CA3AF"
+          secureTextEntry={!showPassword}
+          value={password}
+          onChangeText={setPassword}
+        />
+        <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
+          {showPassword ? <EyeOff size={20} color="#9CA3AF" /> : <Eye size={20} color="#9CA3AF" />}
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.sectionLabelContainer}>
+        <Text style={styles.sectionLabel}>CONFIRM PASSWORD</Text>
+      </View>
+      <View style={styles.inputContainer}>
+        <View style={styles.inputIcon}>
+          <Lock size={20} color="#13918F" />
+        </View>
+        <TextInput
+          style={styles.textInput}
+          placeholder="Repeat password"
+          placeholderTextColor="#9CA3AF"
+          secureTextEntry={!showConfirmPassword}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+        />
+        <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
+          {showConfirmPassword ? <EyeOff size={20} color="#9CA3AF" /> : <Eye size={20} color="#9CA3AF" />}
+        </TouchableOpacity>
+      </View>
+    </>
+  );
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -126,186 +332,9 @@ export default function SignUpPage() {
           </View>
 
           <View style={styles.card}>
-            {step === 1 ? (
-              <>
-                {cardData.map((card) => (
-                  <TouchableOpacity
-                    key={card.role}
-                    style={[styles.selectionCard, activeTab === card.role && styles.selectionCardActive]}
-                    onPress={() => setActiveTab(card.role)}
-                    activeOpacity={0.85}
-                  >
-                    <View style={styles.selectionIcon}>{card.icon}</View>
-                    <View style={styles.selectionText}>
-                      <Text style={styles.selectionTitle}>{card.title}</Text>
-                      <Text style={styles.selectionSubtitle}>{card.subtitle}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </>
-            ) : step === 2 ? (
-              <>
-                <View style={styles.sectionLabelContainer}>
-                  <Text style={styles.sectionLabel}>FULL NAME</Text>
-                </View>
-                <View style={styles.inputContainer}>
-                  <View style={styles.inputIcon}>
-                    <User size={20} color="#13918F" />
-                  </View>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Juan Dela Cruz"
-                    placeholderTextColor="#9CA3AF"
-                    value={fullName}
-                    onChangeText={setFullName}
-                  />
-                </View>
-
-                <View style={styles.sectionLabelContainer}>
-                  <Text style={styles.sectionLabel}>DATE OF BIRTH</Text>
-                </View>
-                <View style={styles.inputContainer}>
-                  <View style={styles.inputIcon}>
-                    <Calendar size={20} color="#13918F" />
-                  </View>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="09/08/2004"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="number-pad"
-                    value={dob}
-                    onChangeText={setDob}
-                  />
-                </View>
-
-                <View style={styles.sectionLabelContainer}>
-                  <Text style={styles.sectionLabel}>MOBILE NUMBER</Text>
-                </View>
-                <View style={styles.inputContainer}>
-                  <View style={styles.prefixBox}>
-                    <Text style={styles.prefixText}>+63</Text>
-                  </View>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="912 345 6789"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="phone-pad"
-                    value={mobile}
-                    onChangeText={setMobile}
-                  />
-                </View>
-
-                <View style={styles.sectionLabelContainer}>
-                  <Text style={styles.sectionLabel}>EMAIL ADDRESS</Text>
-                </View>
-                <View style={styles.inputContainer}>
-                  <View style={styles.inputIcon}>
-                    <Mail size={20} color="#13918F" />
-                  </View>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="juandelacruz@email.com"
-                    placeholderTextColor="#9CA3AF"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    value={email}
-                    onChangeText={setEmail}
-                  />
-                </View>
-              </>
-            ) : (
-              <>
-                <View style={styles.sectionLabelContainer}>
-                  <Text style={styles.sectionLabel}>STREET ADDRESS</Text>
-                </View>
-                <View style={styles.inputContainer}>
-                  <View style={styles.inputIcon}>
-                    <Home size={20} color="#13918F" />
-                  </View>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="123 Mabini St. Brgy. 4"
-                    placeholderTextColor="#9CA3AF"
-                    value={address}
-                    onChangeText={setAddress}
-                  />
-                </View>
-
-                <View style={styles.twoColumnRow}>
-                  <View style={styles.halfInputWrapper}>
-                    <Text style={styles.sectionLabel}>CITY</Text>
-                    <View style={styles.inputContainer}>
-                      <View style={styles.inputIcon}>
-                        <MapPin size={20} color="#13918F" />
-                      </View>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="Quezon City"
-                        placeholderTextColor="#9CA3AF"
-                        value={city}
-                        onChangeText={setCity}
-                      />
-                    </View>
-                  </View>
-
-                  <View style={styles.halfInputWrapper}>
-                    <Text style={styles.sectionLabel}>PROVINCE</Text>
-                    <View style={styles.inputContainer}>
-                      <View style={styles.inputIcon}>
-                        <MapPin size={20} color="#13918F" />
-                      </View>
-                      <TextInput
-                        style={styles.textInput}
-                        placeholder="Metro Manila"
-                        placeholderTextColor="#9CA3AF"
-                        value={province}
-                        onChangeText={setProvince}
-                      />
-                    </View>
-                  </View>
-                </View>
-
-                <View style={styles.sectionLabelContainer}>
-                  <Text style={styles.sectionLabel}>SET PASSWORD</Text>
-                </View>
-                <View style={styles.inputContainer}>
-                  <View style={styles.inputIcon}>
-                    <Lock size={20} color="#13918F" />
-                  </View>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="8+ chars, number, symbol"
-                    placeholderTextColor="#9CA3AF"
-                    secureTextEntry={!showPassword}
-                    value={password}
-                    onChangeText={setPassword}
-                  />
-                  <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
-                    {showPassword ? <EyeOff size={20} color="#9CA3AF" /> : <Eye size={20} color="#9CA3AF" />}
-                  </TouchableOpacity>
-                </View>
-
-                <View style={styles.sectionLabelContainer}>
-                  <Text style={styles.sectionLabel}>CONFIRM PASSWORD</Text>
-                </View>
-                <View style={styles.inputContainer}>
-                  <View style={styles.inputIcon}>
-                    <Lock size={20} color="#13918F" />
-                  </View>
-                  <TextInput
-                    style={styles.textInput}
-                    placeholder="Repeat password"
-                    placeholderTextColor="#9CA3AF"
-                    secureTextEntry={!showConfirmPassword}
-                    value={confirmPassword}
-                    onChangeText={setConfirmPassword}
-                  />
-                  <TouchableOpacity onPress={() => setShowConfirmPassword(!showConfirmPassword)} style={styles.eyeIcon}>
-                    {showConfirmPassword ? <EyeOff size={20} color="#9CA3AF" /> : <Eye size={20} color="#9CA3AF" />}
-                  </TouchableOpacity>
-                </View>
-              </>
-            )}
+            {step === 1 && renderRoleSelection()}
+            {step === 2 && renderPersonalInfo()}
+            {step === 3 && renderAddressAndSecurity()}
           </View>
         </ScrollView>
 

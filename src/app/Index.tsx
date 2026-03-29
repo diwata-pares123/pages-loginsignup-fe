@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Package, MapPin } from 'lucide-react-native';
 
@@ -16,7 +17,7 @@ export default function ServiceSelectionScreen() {
         <View style={styles.cardRow}>
           <TouchableOpacity
             style={[styles.card, styles.cardPrimary]}
-            onPress={() => router.push('/login')}
+            onPress={() => router.push('/(auth)/login')}
             activeOpacity={0.9}
           >
             <View style={styles.cardIcon}>
