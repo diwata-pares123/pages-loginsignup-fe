@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { ArrowLeft, Lock, Eye, EyeOff, CheckCircle, Circle } from 'lucide-react-native';
 
 type TabRole = 'sender' | 'driver' | 'operator';
 
@@ -21,11 +21,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
 
   const subtitles: Record<TabRole, string> = {
-    sender: 'Access your sender portal.',
-    driver: 'Access your driver portal.',
-    operator: 'Access your operator portal.',
+    sender: 'Welcome back! Ship with ease.',
+    driver: 'Welcome back! Ship with ease.',
+    operator: 'Welcome back! Ship with ease.',
   };
 
   const handleLogin = () => {
@@ -108,7 +109,18 @@ export default function LoginPage() {
               </View>
 
               <View style={styles.rowBetween}>
-                <View style={styles.checkboxPlaceholder} />
+                <TouchableOpacity
+                  style={styles.checkboxContainer}
+                  onPress={() => setRememberMe(!rememberMe)}
+                  activeOpacity={0.8}
+                >
+                  {rememberMe ? (
+                    <CheckCircle size={20} color="#13918F" />
+                  ) : (
+                    <Circle size={20} color="#D1D5DB" />
+                  )}
+                  <Text style={styles.rememberMeText}>Remember me</Text>
+                </TouchableOpacity>
                 <TouchableOpacity>
                   <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
                 </TouchableOpacity>
@@ -160,6 +172,8 @@ const styles = StyleSheet.create({
   eyeIcon: { paddingHorizontal: 16, height: '100%', justifyContent: 'center' },
   rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12 },
   checkboxPlaceholder: { width: 24, height: 24 },
+  checkboxContainer: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  rememberMeText: { color: '#6B7280', fontSize: 13, fontWeight: '500' },
   forgotPasswordText: { color: '#13918F', fontSize: 13, fontWeight: '600' },
   loginBtn: { backgroundColor: '#041614', paddingVertical: 18, borderRadius: 20, alignItems: 'center', marginTop: 8, marginBottom: 18 },
   loginBtnText: { color: '#FFF', fontSize: 14, fontWeight: 'bold', letterSpacing: 2 },
