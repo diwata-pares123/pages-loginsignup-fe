@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Alert,
 } from 'react-native';
-import { Upload, X } from 'lucide-react-native';
+import { Upload, Trash2 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 
 interface DocumentUploadItem {
@@ -100,7 +100,7 @@ export default function ImageUploadComponent({
                 style={styles.removeButton}
                 onPress={() => handleRemoveImage(doc.id)}
               >
-                <X size={18} color="#FFFFFF" />
+                <Trash2 size={18} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           ) : (

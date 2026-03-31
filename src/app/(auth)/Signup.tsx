@@ -1,24 +1,27 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
-  TextInput,
-  ScrollView,
-  Alert,
+  View, Text, StyleSheet, TouchableOpacity, KeyboardAvoidingView, Platform, TextInput, ScrollView, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, User, Mail, Lock, MapPin, Home, Eye, EyeOff, CheckCircle, Circle, AlertCircle } from 'lucide-react-native';
-import DateInput from 'src/components/DateInput';
-import ImageUploadComponent from 'src/components/ImageUploadComponent';
-import { api } from 'src/utils/api';
 
+// FIXED IMPORTS: Using relative paths based on your src/app/(auth) folder structure
+import DateInput from '../../components/DateInput';
+import ImageUploadComponent from '../../components/ImageUploadComponent';
+import { api } from '../../utils/api';
+
+// --- Types ---
 type TabRole = 'sender' | 'driver' | 'operator';
 const roleOptions: Set<TabRole> = new Set(['sender', 'driver', 'operator']);
+
+export interface DocumentItem {
+  id: string; title: string; description: string; required?: boolean;
+}
+
+// ⚠️ Ensure these are set in your React Native .env file!
+const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -53,10 +56,7 @@ export default function SignUpPage() {
   }, [params.role]);
 
   const handleBack = () => {
-    if (step === 1) {
-      router.back();
-      return;
-    }
+    if (step === 1) { router.back(); return; }
     setStep((current) => Math.max(current - 1, 1));
   };
 
@@ -64,18 +64,12 @@ export default function SignUpPage() {
     const filename = uri.split('/').pop() || 'upload.jpg';
     const match = /\.(\w+)$/.exec(filename);
     const type = match ? `image/${match[1]}` : `image/jpeg`;
-
-    formData.append(fieldName, {
-      uri,
-      name: filename,
-      type,
-    } as any);
+    formData.append(fieldName, { uri, name: filename, type } as any);
   };
 
   const validateDocumentsUploaded = (): boolean => {
     const docsToCheck = activeTab === 'driver' ? getDriverDocuments() : getOperatorDocuments();
     const uploadedDocs = activeTab === 'driver' ? driverDocs : operatorDocs;
-
     for (const doc of docsToCheck) {
       if (doc.required && !uploadedDocs[doc.id]) {
         Alert.alert('Required', `Please upload your ${doc.title} to proceed.`);
@@ -85,123 +79,123 @@ export default function SignUpPage() {
     return true;
   };
 
-  const buildBaseFormData = (): FormData => {
-    const formData = new FormData();
-    
-    const roleMapping: Record<TabRole, string> = {
-      sender: 'CUSTOMER',
-      driver: 'DRIVER',
-      operator: 'OPERATOR',
-    };
-    formData.append('role', roleMapping[activeTab]);
-
-    if (fullName.trim()) formData.append('full_name', fullName);
-    if (email.trim()) formData.append('email', email);
-    
-    if (dob.trim()) {
-      formData.append('date_of_birth', new Date(dob).toISOString());
-    }
-
-    if (address.trim()) formData.append('street_address', address);
-    if (city.trim()) formData.append('city', city);
-    if (province.trim()) formData.append('province', province);
-    
-    if (password.trim()) formData.append('password', password); 
-    
-    if (mobile.trim()) {
-      const cleanMobile = mobile.replace(/[^0-9]/g, ''); 
-      const formattedMobile = cleanMobile.startsWith('63') 
-        ? `+${cleanMobile}` 
-        : `+63${cleanMobile.replace(/^0+/, '')}`; 
-      formData.append('phone_number', formattedMobile);
-    }
-
-    if (agreedToTerms) {
-      formData.append('terms_accepted_at', new Date().toISOString());
-    }
-
-    return formData;
-  };
-
   const validateAddressAndSecurity = (): boolean => {
     if (!address.trim()) { Alert.alert('Required', 'Street Address is required.'); return false; }
     if (!city.trim()) { Alert.alert('Required', 'City is required.'); return false; }
     if (!province.trim()) { Alert.alert('Required', 'Province is required.'); return false; }
-    
     const emailRegex = /\S+@\S+\.\S+/;
     if (!emailRegex.test(email)) { Alert.alert('Error', 'Please enter a valid email address.'); return false; }
-
     if (password !== confirmPassword) { Alert.alert('Error', 'Passwords do not match.'); return false; }
     if (!agreedToTerms) { Alert.alert('Required', 'Please accept the Terms & Conditions.'); return false; }
-
     return true;
   };
 
   const validatePersonalInfo = (): boolean => {
     if (!fullName.trim()) { Alert.alert('Required', 'Full Name is required.'); return false; }
     if (!dob.trim()) { Alert.alert('Required', 'Date of Birth is required.'); return false; }
-    if (mobile.trim().length !== 10) { Alert.alert('Error', 'Mobile number must be exactly 10 digits (e.g., 9284457713).'); return false; }
+    if (mobile.trim().length !== 10) { Alert.alert('Error', 'Mobile number must be exactly 10 digits.'); return false; }
     if (!email.trim()) { Alert.alert('Required', 'Email address is required.'); return false; }
-    
     return true;
   };
 
-  const submitSenderData = async (): Promise<void> => {
-    if (!validateAddressAndSecurity()) return; 
+  const buildBaseFormData = (): FormData => {
+    const formData = new FormData();
+    const roleMapping: Record<TabRole, string> = { sender: 'CUSTOMER', driver: 'DRIVER', operator: 'OPERATOR' };
     
-    setIsSubmitting(true);
-    try {
-      const formData = buildBaseFormData();
-      const response = await api.postForm('/users/profile', formData);
-      console.log('Success:', response);
-      Alert.alert('Success', 'Account created successfully!');
-    } catch (error: any) {
-      Alert.alert('Registration Failed', error.message);
-    } finally {
-      setIsSubmitting(false);
+    formData.append('role', roleMapping[activeTab]);
+    if (fullName.trim()) formData.append('full_name', fullName);
+    if (email.trim()) formData.append('email', email);
+    if (dob.trim()) formData.append('date_of_birth', new Date(dob).toISOString());
+    if (address.trim()) formData.append('street_address', address);
+    if (city.trim()) formData.append('city', city);
+    if (province.trim()) formData.append('province', province);
+    // Note: Password usually isn't sent to the backend profile if Supabase handles auth, but kept as per your original code
+    if (password.trim()) formData.append('password', password); 
+    
+    if (mobile.trim()) {
+      const cleanMobile = mobile.replace(/[^0-9]/g, ''); 
+      const formattedMobile = cleanMobile.startsWith('63') ? `+${cleanMobile}` : `+63${cleanMobile.replace(/^0+/, '')}`; 
+      formData.append('phone_number', formattedMobile);
     }
+    if (agreedToTerms) formData.append('terms_accepted_at', new Date().toISOString());
+
+    return formData;
   };
 
-  const submitVerificationData = async (): Promise<void> => {
-    if (!validateDocumentsUploaded()) return;
-    if (!validateAddressAndSecurity()) return; 
-
+  // ==========================================
+  // UNIFIED SUBMISSION (SUPABASE + NESTJS)
+  // ==========================================
+  const submitApplication = async (): Promise<void> => {
+   if (activeTab === 'sender') {
+      if (!validateAddressAndSecurity()) {
+        console.log("❌ Validation failed on Address/Security");
+        setIsSubmitting(false); // Make sure to reset the button!
+        return; 
+      }
+    } else {
+      if (!validateDocumentsUploaded()) {
+        console.log("❌ Validation failed on Documents");
+        setIsSubmitting(false);
+        return;
+      }
+      if (!validateAddressAndSecurity()) {
+        console.log("❌ Validation failed on Address/Security");
+        setIsSubmitting(false);
+        return; 
+      }
+    }
     setIsSubmitting(true);
     try {
+      const cleanMobile = mobile.replace(/[^0-9]/g, ''); 
+      const formattedMobile = cleanMobile.startsWith('63') ? `+${cleanMobile}` : `+63${cleanMobile.replace(/^0+/, '')}`; 
+      const roleMapping: Record<TabRole, string> = { sender: 'CUSTOMER', driver: 'DRIVER', operator: 'OPERATOR' };
+      
+      // STEP 1: Register User in Supabase Auth
+      const authResponse = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY },
+        body: JSON.stringify({
+          email: email,
+          password: password,
+          data: { full_name: fullName, phone_number: formattedMobile, role: roleMapping[activeTab] }
+        }),
+      });
+
+      const authData = await authResponse.json();
+      if (!authResponse.ok) {
+        throw new Error(authData.msg || authData.error_description || "Supabase Registration Failed.");
+      }
+
+      // STEP 2: Extract User ID
+      const userId = authData.id || authData.user?.id;
+      if (!userId) throw new Error("Failed to retrieve User ID from Supabase.");
+
+      // STEP 3: Build FormData and Attach Supabase User ID
       const formData = buildBaseFormData();
+      formData.append('user_id', userId); // <-- THIS IS WHAT WAS MISSING BEFORE!
 
-      // Backend mapping
-      const driverFileMap: Record<string, string> = {
-        drivers_license: 'licenseFile',
-        vehicle_orcr: 'orcrFile',
-        selfie_with_id: 'selfieFile',
-      };
-
-      const operatorFileMap: Record<string, string> = {
-        dti_certificate: 'dtiFile',
-        business_permit: 'permitFile',
-        proof_of_location: 'proofFile',
-        selfie_with_id: 'selfieFile',
-      };
-
+      // Attach documents for Drivers and Operators
       if (activeTab === 'driver') {
+        const driverFileMap: Record<string, string> = { drivers_license: 'licenseFile', vehicle_orcr: 'orcrFile', selfie_with_id: 'selfieFile' };
         Object.keys(driverDocs).forEach((key) => {
-          const docValue = driverDocs[key];
-          const backendKey = driverFileMap[key];
-          if (docValue && backendKey) appendFileToForm(formData, backendKey, docValue);
+          if (driverDocs[key] && driverFileMap[key]) appendFileToForm(formData, driverFileMap[key], driverDocs[key]!);
         });
       } else if (activeTab === 'operator') {
+        const operatorFileMap: Record<string, string> = { dti_certificate: 'dtiFile', business_permit: 'permitFile', proof_of_location: 'proofFile', selfie_with_id: 'selfieFile' };
         Object.keys(operatorDocs).forEach((key) => {
-          const docValue = operatorDocs[key];
-          const backendKey = operatorFileMap[key];
-          if (docValue && backendKey) appendFileToForm(formData, backendKey, docValue);
+          if (operatorDocs[key] && operatorFileMap[key]) appendFileToForm(formData, operatorFileMap[key], operatorDocs[key]!);
         });
       }
 
+      // STEP 4: Send Profile & Files to NestJS via your API utility
       const response = await api.postForm('/users/profile', formData);
-      console.log('Success:', response);
-      Alert.alert('Success', 'Application submitted successfully!');
+      console.log('Backend Success:', response);
+      
+      Alert.alert('Success', 'Application submitted successfully! Please check your email to verify your account.');
+      // router.replace('/login'); // Uncomment if you want to route them to login
+      
     } catch (error: any) {
+      console.error(error);
       Alert.alert('Registration Failed', error.message);
     } finally {
       setIsSubmitting(false);
@@ -214,25 +208,18 @@ export default function SignUpPage() {
     // --- SENDER FLOW (Steps 1 to 3) ---
     if (activeTab === 'sender') {
       if (step === 2 && !validatePersonalInfo()) return;
-      if (step < 3) {
-        setStep((current) => current + 1);
-        return;
-      }
-      submitSenderData();
+      if (step < 3) { setStep((current) => current + 1); return; }
+      submitApplication();
       return;
     }
 
     // --- DRIVER & OPERATOR FLOW (Steps 1 to 5) ---
-    if (step === 2) { setStep(3); return; } // Requirements screen - just next
+    if (step === 2) { setStep(3); return; } // Requirements screen
     if (step === 3 && !validatePersonalInfo()) return;
     if (step === 4 && !validateAddressAndSecurity()) return;
 
-    if (step < 5) {
-      setStep((current) => current + 1);
-      return;
-    }
-
-    submitVerificationData();
+    if (step < 5) { setStep((current) => current + 1); return; }
+    submitApplication();
   };
 
   const cardData = [
@@ -295,23 +282,13 @@ export default function SignUpPage() {
 
   const handleMobileChange = (text: string) => {
     const cleanNumber = text.replace(/[^0-9]/g, '');
-    if (cleanNumber.length <= 10) {
-      setMobile(cleanNumber);
-    }
+    if (cleanNumber.length <= 10) setMobile(cleanNumber);
   };
 
   const renderRoleSelection = () => (
     <>
       {cardData.map((card) => (
-        <TouchableOpacity
-          key={card.role}
-          style={[styles.selectionCard, activeTab === card.role && styles.selectionCardActive]}
-          onPress={() => {
-            setActiveTab(card.role);
-            setStep(2); 
-          }}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity key={card.role} style={[styles.selectionCard, activeTab === card.role && styles.selectionCardActive]} onPress={() => { setActiveTab(card.role); setStep(2); }} activeOpacity={0.85}>
           <View style={styles.selectionIcon}>{card.icon}</View>
           <View style={styles.selectionText}>
             <Text style={styles.selectionTitle}>{card.title}</Text>
@@ -326,51 +303,22 @@ export default function SignUpPage() {
     <View style={styles.paalalaContainer}>
       <View style={styles.paalalaHeader}>
         <AlertCircle size={28} color="#13918F" />
-        <Text style={styles.paalalaTitle}>
-          {activeTab === 'driver' ? 'Paalala para sa Rider' : 'Paalala sa Partner Business'}
-        </Text>
+        <Text style={styles.paalalaTitle}>{activeTab === 'driver' ? 'Paalala para sa Rider' : 'Paalala sa Partner Business'}</Text>
       </View>
-      <Text style={styles.paalalaSubtitle}>
-        Mangyaring ihanda ang mga sumusunod bago magpatuloy sa aplikasyon:
-      </Text>
-
+      <Text style={styles.paalalaSubtitle}>Mangyaring ihanda ang mga sumusunod bago magpatuloy sa aplikasyon:</Text>
       {activeTab === 'driver' ? (
         <>
-          <View style={styles.reqCard}>
-            <Text style={styles.reqCardTitle}>1. Sariling Sasakyan</Text>
-            <Text style={styles.reqCardSub}>Motorcycle, Tricycle, o 4-Wheel na rehistrado.</Text>
-          </View>
-          <View style={styles.reqCard}>
-            <Text style={styles.reqCardTitle}>2. Valid Driver's License</Text>
-            <Text style={styles.reqCardSub}>Professional o Non-Professional na lisensya.</Text>
-          </View>
-          <View style={styles.reqCard}>
-            <Text style={styles.reqCardTitle}>3. LTO OR/CR</Text>
-            <Text style={styles.reqCardSub}>Opisyal na resibo at rehistro ng sasakyan.</Text>
-          </View>
-          <View style={styles.reqCard}>
-            <Text style={styles.reqCardTitle}>4. Smartphone w/ Internet</Text>
-            <Text style={styles.reqCardSub}>Kailangan para sa PakiSHIP app at mapa.</Text>
-          </View>
+          <View style={styles.reqCard}><Text style={styles.reqCardTitle}>1. Sariling Sasakyan</Text><Text style={styles.reqCardSub}>Motorcycle, Tricycle, o 4-Wheel na rehistrado.</Text></View>
+          <View style={styles.reqCard}><Text style={styles.reqCardTitle}>2. Valid Driver's License</Text><Text style={styles.reqCardSub}>Professional o Non-Professional na lisensya.</Text></View>
+          <View style={styles.reqCard}><Text style={styles.reqCardTitle}>3. LTO OR/CR</Text><Text style={styles.reqCardSub}>Opisyal na resibo at rehistro ng sasakyan.</Text></View>
+          <View style={styles.reqCard}><Text style={styles.reqCardTitle}>4. Smartphone w/ Internet</Text><Text style={styles.reqCardSub}>Kailangan para sa PakiSHIP app at mapa.</Text></View>
         </>
       ) : (
         <>
-          <View style={styles.reqCard}>
-            <Text style={styles.reqCardTitle}>1. Physical Store / Pwesto</Text>
-            <Text style={styles.reqCardSub}>Dapat madaling mapuntahan ng mga riders at customers.</Text>
-          </View>
-          <View style={styles.reqCard}>
-            <Text style={styles.reqCardTitle}>2. Business Registration</Text>
-            <Text style={styles.reqCardSub}>Valid Business Permit at DTI / SEC Certificate.</Text>
-          </View>
-          <View style={styles.reqCard}>
-            <Text style={styles.reqCardTitle}>3. Ligtas na Espasyo</Text>
-            <Text style={styles.reqCardSub}>Kailangan ng secure na lugar para i-store ang mga parcels.</Text>
-          </View>
-          <View style={styles.reqCard}>
-            <Text style={styles.reqCardTitle}>4. Smartphone / Computer</Text>
-            <Text style={styles.reqCardSub}>May internet connection para ma-access ang system.</Text>
-          </View>
+          <View style={styles.reqCard}><Text style={styles.reqCardTitle}>1. Physical Store / Pwesto</Text><Text style={styles.reqCardSub}>Dapat madaling mapuntahan ng mga riders at customers.</Text></View>
+          <View style={styles.reqCard}><Text style={styles.reqCardTitle}>2. Business Registration</Text><Text style={styles.reqCardSub}>Valid Business Permit at DTI / SEC Certificate.</Text></View>
+          <View style={styles.reqCard}><Text style={styles.reqCardTitle}>3. Ligtas na Espasyo</Text><Text style={styles.reqCardSub}>Kailangan ng secure na lugar para i-store ang mga parcels.</Text></View>
+          <View style={styles.reqCard}><Text style={styles.reqCardTitle}>4. Smartphone / Computer</Text><Text style={styles.reqCardSub}>May internet connection para ma-access ang system.</Text></View>
         </>
       )}
     </View>
@@ -444,25 +392,22 @@ export default function SignUpPage() {
         </TouchableOpacity>
       </View>
 
-      {/* Only show terms here if Sender. Otherwise show it on the final Verification step */}
       {activeTab === 'sender' && (
         <TouchableOpacity style={styles.termsCheckboxContainer} onPress={() => setAgreedToTerms(!agreedToTerms)} activeOpacity={0.8}>
           {agreedToTerms ? <CheckCircle size={20} color="#13918F" /> : <Circle size={20} color="#D1D5DB" />}
-          <Text style={styles.termsText}>
-            I accept the <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>.
-          </Text>
+          <Text style={styles.termsText}>I accept the <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>.</Text>
         </TouchableOpacity>
       )}
     </>
   );
 
-  const getDriverDocuments = () => [
+  const getDriverDocuments = (): DocumentItem[] => [
     { id: 'drivers_license', title: "Driver's License", description: 'Please upload a clear photo of your professional or non-professional driver\'s license.', required: true },
     { id: 'vehicle_orcr', title: 'Vehicle OR/CR', description: 'Upload a clear photo of your official receipt and certificate of registration.', required: true },
     { id: 'selfie_with_id', title: 'Selfie with ID', description: 'Take a selfie while holding your valid ID next to your face.', required: true },
   ];
 
-  const getOperatorDocuments = () => [
+  const getOperatorDocuments = (): DocumentItem[] => [
     { id: 'dti_certificate', title: 'DTI / SEC Certificate', description: 'Siguraduhing ito ay orihinal at malinaw na mababasa ang lahat ng information.', required: true },
     { id: 'business_permit', title: 'Business Permit', description: 'Siguraduhing ang permiso ay up-to-date at valid.', required: true },
     { id: 'proof_of_location', title: 'Proof of Location', description: 'Ihandog ang patunay na ang lokasyon ay accessible sa lahat.', required: true },
@@ -472,16 +417,10 @@ export default function SignUpPage() {
   const renderVerification = () => (
     <>
       <Text style={styles.uploadSectionTitle}>Upload Required Documents</Text>
-      <ImageUploadComponent
-        documents={activeTab === 'driver' ? getDriverDocuments() : getOperatorDocuments()}
-        onDocumentsSelected={activeTab === 'driver' ? setDriverDocs : setOperatorDocs}
-      />
-
+      <ImageUploadComponent documents={activeTab === 'driver' ? getDriverDocuments() : getOperatorDocuments()} onDocumentsSelected={activeTab === 'driver' ? setDriverDocs : setOperatorDocs} />
       <TouchableOpacity style={styles.termsCheckboxContainer} onPress={() => setAgreedToTerms(!agreedToTerms)} activeOpacity={0.8}>
         {agreedToTerms ? <CheckCircle size={20} color="#13918F" /> : <Circle size={20} color="#D1D5DB" />}
-        <Text style={styles.termsText}>
-          I accept the <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>. I confirm all uploaded documents are authentic.
-        </Text>
+        <Text style={styles.termsText}>I accept the <Text style={styles.termsLink}>Terms & Conditions</Text> and <Text style={styles.termsLink}>Privacy Policy</Text>. I confirm all uploaded documents are authentic.</Text>
       </TouchableOpacity>
     </>
   );
@@ -491,19 +430,10 @@ export default function SignUpPage() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
           <View style={styles.headerRow}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.8}>
-              <ArrowLeft size={24} color="#13918F" />
-            </TouchableOpacity>
-            <View style={styles.headerText}>
-              <Text style={styles.headerLabel}>{stepLabel}</Text>
-              <Text style={styles.mainTitle}>{stepTitle}</Text>
-            </View>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack} activeOpacity={0.8}><ArrowLeft size={24} color="#13918F" /></TouchableOpacity>
+            <View style={styles.headerText}><Text style={styles.headerLabel}>{stepLabel}</Text><Text style={styles.mainTitle}>{stepTitle}</Text></View>
           </View>
-
-          <View style={styles.progressBarBackground}>
-            <View style={[styles.progressBar, { width: getProgressBarWidth() }]} />
-          </View>
-
+          <View style={styles.progressBarBackground}><View style={[styles.progressBar, { width: getProgressBarWidth() }]} /></View>
           <View style={styles.card}>
             {step === 1 && renderRoleSelection()}
             {step === 2 && activeTab !== 'sender' && renderRequirements()}
@@ -512,18 +442,10 @@ export default function SignUpPage() {
             {step === 5 && activeTab !== 'sender' && renderVerification()}
           </View>
         </ScrollView>
-
         <View style={styles.footer}>
           {step !== 1 && (
-            <TouchableOpacity 
-              style={[styles.continueButton, isSubmitting && { opacity: 0.7 }]} 
-              onPress={handleNext} 
-              activeOpacity={0.85}
-              disabled={isSubmitting} 
-            >
-              <Text style={styles.continueButtonText}>
-                {isSubmitting ? 'SUBMITTING...' : buttonLabel}
-              </Text>
+            <TouchableOpacity style={[styles.continueButton, isSubmitting && { opacity: 0.7 }]} onPress={handleNext} activeOpacity={0.85} disabled={isSubmitting}>
+              <Text style={styles.continueButtonText}>{isSubmitting ? 'SUBMITTING...' : buttonLabel}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -544,8 +466,6 @@ const styles = StyleSheet.create({
   progressBarBackground: { width: '100%', height: 6, backgroundColor: '#E9F7F6', borderRadius: 99, marginBottom: 24 },
   progressBar: { height: 6, borderRadius: 99, backgroundColor: '#39B5A8' },
   card: { backgroundColor: '#FFFFFF', borderRadius: 34, padding: 24, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 16 }, elevation: 6 },
-  
-  // New Styles for the Paalala Screens
   paalalaContainer: { marginBottom: 10 },
   paalalaHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, gap: 10 },
   paalalaTitle: { fontSize: 20, fontWeight: '800', color: '#041614' },
@@ -553,7 +473,6 @@ const styles = StyleSheet.create({
   reqCard: { backgroundColor: '#F4FBFA', padding: 16, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: '#E5F1EF' },
   reqCardTitle: { fontSize: 14, fontWeight: '800', color: '#13918F', marginBottom: 4 },
   reqCardSub: { fontSize: 12, color: '#4B5563', lineHeight: 18 },
-
   uploadSectionTitle: { fontSize: 16, fontWeight: '800', color: '#041614', marginBottom: 16 },
   termsCheckboxContainer: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginTop: 16, paddingBottom: 16 },
   termsText: { flex: 1, fontSize: 12, color: '#6B7280', lineHeight: 18, fontWeight: '500' },
