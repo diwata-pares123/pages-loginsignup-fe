@@ -39,7 +39,7 @@ export default function ImageUploadComponent({
 
       // Open image picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
+        mediaTypes: ['images'], // Updated per Expo ImagePicker v15+ API
         allowsEditing: false,
         quality: 0.8,
       });
@@ -47,13 +47,15 @@ export default function ImageUploadComponent({
       if (!result.canceled && result.assets?.length) {
         const asset = result.assets[0];
         if (asset?.uri) {
-          setSelectedImages((prev) => ({
-            ...prev,
-            [documentId]: asset.uri,
-          }));
-          onDocumentsSelected({
-            ...selectedImages,
-            [documentId]: asset.uri,
+          // Use the 'prev' state to ensure we are passing the most up-to-date
+          // object back to the parent component, avoiding stale state issues.
+          setSelectedImages((prev) => {
+            const updated = {
+              ...prev,
+              [documentId]: asset.uri,
+            };
+            onDocumentsSelected(updated);
+            return updated;
           });
         }
       }
@@ -77,11 +79,15 @@ export default function ImageUploadComponent({
       {documents.map((doc) => (
         <View key={doc.id} style={styles.uploadCard}>
           <View style={styles.uploadHeader}>
-            <View>
+            <View style={{ flex: 1, paddingRight: 10 }}>
               <Text style={styles.uploadTitle}>{doc.title}</Text>
               <Text style={styles.uploadDescription}>{doc.description}</Text>
             </View>
-            {doc.required && <Text style={styles.requiredBadge}>REQUIRED</Text>}
+            
+            {/* Badge now only shows IF the document is required AND hasn't been uploaded yet */}
+            {doc.required && !selectedImages[doc.id] && (
+              <Text style={styles.requiredBadge}>REQUIRED</Text>
+            )}
           </View>
 
           {selectedImages[doc.id] ? (

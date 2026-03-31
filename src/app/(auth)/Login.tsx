@@ -25,8 +25,8 @@ export default function LoginPage() {
 
   const subtitles: Record<TabRole, string> = {
     sender: 'Welcome back! Ship with ease.',
-    driver: 'Welcome back! Ship with ease.',
-    operator: 'Welcome back! Ship with ease.',
+    driver: 'Access your driver portal.',
+    operator: 'Access your operator portal.',
   };
 
   const handleLogin = () => {
@@ -34,7 +34,8 @@ export default function LoginPage() {
   };
 
   const handleCreateAccount = () => {
-    router.push(`/signup?role=${activeTab}`);
+    // ROUTING FIX: This now points purely to /signup so the user always starts at Step 1 (Role Selection)
+    router.push('/signup');
   };
 
   return (
